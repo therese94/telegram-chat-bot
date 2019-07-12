@@ -8,6 +8,9 @@ CHAT_ID = config('CHAT_ID')
 base_url = 'https://api.telegram.org'
 app = Flask(__name__)
 
+NAVER_CLIENT_ID = config('NAVER_CLIENT_ID')
+NAVER_CLIENT_SECRET = config('NAVER_CLIENT_SECRET')
+
 @app.route('/')
 def hello():
     return 'Hello World'
@@ -30,15 +33,45 @@ def telegram():
         print('text : ',text)
         
         #  Send Message API URL
-        if text == '점심메뉴':
-            reply_text = '고기 먹을까?'
+        
+        if text[0:4] == '/영한 ':            #첫 네글자가 '/번역 ' 일 때
+            # text = '번역을 시작'
+            headers = {
+                'X-Naver-Client-Id': NAVER_CLIENT_ID,
+                'X-Naver-Client-Secret': NAVER_CLIENT_SECRET,           #  trailing comma
+            }
+            data = {
+                'source': 'en',
+                'target': 'ko',
+                'text': text[4:]        #/번역  이후의 문자열만 대상으로 번역
+            }
+            papago_url = 'https://openapi.naver.com/v1/papago/n2mt'
+            papago_res = requests.post(papago_url, headers=headers, data=data)
+            pprint.pprint(papago_res.json())
+            text = papago_res.json().get('message').get('result').get('translatedText')
+        elif text[0:4] == '/한영 ':            #첫 네글자가 '/번역 ' 일 때
+            # text = '번역을 시작'
+            headers = {
+                'X-Naver-Client-Id': NAVER_CLIENT_ID,
+                'X-Naver-Client-Secret': NAVER_CLIENT_SECRET,           #  trailing comma
+            }
+            data = {
+                'source': 'ko',
+                'target': 'en',
+                'text': text[4:]        #/번역  이후의 문자열만 대상으로 번역
+            }
+            papago_url = 'https://openapi.naver.com/v1/papago/n2mt'
+            papago_res = requests.post(papago_url, headers=headers, data=data)
+            pprint.pprint(papago_res.json())
+            text = papago_res.json().get('message').get('result').get('translatedText')
         else:
-            reply_text = f'나도 {text}'
+            text = f'나도 {text}'
+        
+        api_url = f'{base_url}/bot{API_TOKEN}/sendMessage?chat_id={CHAT_ID}&text={text}'
+        response = requests.get(api_url)
 
         
-        api_url = f'{base_url}/bot{API_TOKEN}/sendMessage?chat_id={CHAT_ID}&text={reply_text}'
-
-        response = requests.get(api_url)
+    
         
 
     return '', 200
